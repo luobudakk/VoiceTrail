@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "voicetrail"
+version = "1.0.0"
+description = "Modular voice-grounded longitudinal memory and emotion-trajectory pipeline"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {file = "LICENSE"}
+authors = [{name = "VoiceTrail contributors"}]
+keywords = ["voice memory", "emotion trajectory", "long-term memory", "asynchronous pipeline"]
+dependencies = []
+
+[project.optional-dependencies]
+live = [
+  "requests>=2.31",
+  "numpy>=1.26",
+  "sentence-transformers>=3.0",
+  "torch>=2.3",
+  "transformers>=4.48",
+  "python-dotenv>=1.0",
+]
+test = ["pytest>=8"]
+
+[project.scripts]
+voicetrail-run = "voicetrail.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
