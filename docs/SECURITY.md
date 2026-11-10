@@ -1,12 +1,10 @@
-# Security and GitHub publication
+# Security and responsible publication
 
-## Repository contents
+## Runtime secrets and data
 
-This repository contains **source code, public documentation, configuration templates, and tests only**.
+Configure API keys and service endpoints via `.env` or a dedicated secret store. Keep conversation transcripts, audio, identifiable participant information, model assets, and evaluation artifacts in appropriately access-controlled storage. Use placeholders in `.env.example`.
 
-Excluded: credentials, private-network addresses, user home paths, private or synthetic audio, conversations, Gold answers, datasets, model weights, prediction files, scoring outputs, runtime logs, experimental results, embedding caches and SQLite data.
-
-## Pre-publish checks
+## Publication checks
 
 ```bash
 python scripts/security_scan.py
@@ -15,10 +13,8 @@ git status --short
 git diff --cached --name-only
 ```
 
-`.gitignore` excludes local configurations and common private artifact formats. The security scanner detects forbidden files, absolute user paths, private IP ranges, participant IDs and literal credential values.
+The security scanner checks for sensitive files, local paths, private network addresses, participant identifiers, and credentials. Review the Git diff and staged file list before publication.
 
-All model tokens and service URLs belong in `.env` or an external secret store. `.env.example` uses placeholders only.
+## Evaluation integrity
 
-## Privacy and evaluation separation
-
-The model pipeline consumes source conversations and public questions only. Gold answers are never supplied to the Writer or Reader. Evaluation reports and experimental metrics are kept outside the code repository.
+The Writer and Reader receive historical dialogue evidence and the question. Scoring references are supplied to the evaluation stage separately, preserving answer independence. Source attribution, user isolation and per-question record-date cutoffs are enforced by the retrieval pipeline.

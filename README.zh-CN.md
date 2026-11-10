@@ -8,7 +8,7 @@ VoiceTrail 面向跨会话语音交互中的长期记忆问题，将语音内容
 
 ## 核心方法
 
-VoiceTrail 采用从语音理解到记忆问答的端到端流水线：
+VoiceTrail 通过分阶段流水线连接语音理解、记忆构建与证据驱动的问答：
 
 ```text
 语音会话
@@ -40,9 +40,9 @@ Reader：基于历史证据的跨会话问答
 
 ## 语音增量查询与历史时点检索
 
-[流式查询接口](docs/STREAMING_QUERY.md) 提供 Listening、提前候选准备（Anticipation）、Speech Tail 和最终 Searching。完整问题确认后才使用最终检索结果。现有 Qwen2.5-Omni HTTP 转录支持分块 WAV 接入；底层服务是否支持原生流式 ASR 取决于部署方式。
+[流式查询接口](docs/STREAMING_QUERY.md) 串联 Listening、提前候选准备（Anticipation）、Speech Tail 与最终 Searching。系统可根据部分语音提前准备证据，并使用完整问题确定最终检索上下文。Qwen2.5-Omni HTTP 接口处理完整的短 WAV 分块；原生逐词流式转录需接入相应的 ASR 服务。
 
-QA 可携带 ISO 日期格式的 `cutoff_record_date`，用于按历史时点隔离记忆。Reader 分开统计 `retrieval_latency_ms`、`query_embedding_ms` 和答案生成时间。跨会话事件标识要求 Writer 产生一致、可由原始话轮佐证的事件键；只有精确相等的事件 ID 才能形成同事件扩展。
+QA 支持通过 ISO 日期格式的 `cutoff_record_date` 限定历史记忆范围。Reader 分开统计 `retrieval_latency_ms`、`query_embedding_ms` 和答案生成时间。Writer 基于原始话轮生成用户隔离的稳定事件键，检索时以精确相等的事件 ID 组织跨会话情感轨迹。
 
 ## 流水线调度
 

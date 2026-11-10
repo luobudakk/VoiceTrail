@@ -1,8 +1,8 @@
-"""VoxaTrail mainline query-time evidence budgeting (V6, source-only).
+"""VoiceTrail query-adaptive evidence budgeting.
 
-Default is dynamic after the 2026-10-29 DEV pilot. For legacy ablations
-use mode=fixed_legacy. Only selects from eligible ranked candidates;
-never infers event identity and never accesses benchmark type/Gold.
+The dynamic policy allocates raw dialogue, facts, and affective observations
+by question type. The fixed_legacy mode supports controlled comparisons.
+Selection operates on previously validated historical candidates.
 """
 from __future__ import annotations
 from dataclasses import dataclass

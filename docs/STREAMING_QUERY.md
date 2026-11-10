@@ -30,12 +30,11 @@ If only a partial anticipation is available, Searching retrieves again using
 the finalized complete utterance before generating an answer.
 `answer_prepared()` generates without repeating the final retrieval.
 
-A frontend can alternatively send self-contained short WAV chunks using
+A voice frontend can also pass self-contained short WAV chunks through
 `listen_audio(wav_chunk, asr_adapter)` and
-`speech_tail_audio(wav_chunk, asr_adapter)`. The existing HTTP
-Qwen2.5-Omni-7B adapter transcribes each chunk separately, so acoustic
-continuity, latency, and quality depend on the deployed ASR service.
-This interface does **not** imply native token-level ASR streaming.
+`speech_tail_audio(wav_chunk, asr_adapter)`. The Qwen2.5-Omni HTTP adapter
+transcribes these chunks as independent requests. Native token-level streaming
+uses a compatible ASR service; chunk boundaries determine acoustic continuity.
 
 ## Source-grounded event identities
 
@@ -47,11 +46,10 @@ hashes it per user. Only exact nonempty `event_id` equality connects
 observations during query-time trajectory expansion. Unverified event keys
 fall back to a session-local identifier.
 
-An event key must be assigned consistently across sessions. Literal source
-grounding alone cannot determine whether two differently named events are
-identical, so the extraction model remains responsible for producing a stable
-reference. Evaluate this requirement with longitudinal examples before
-claiming full event-linking accuracy.
+Cross-session continuity is established by consistent, source-attested
+`event_key` values, while event membership at retrieval time uses exact
+stored `event_id` equality. This separates evidence ranking from identity
+assignment and maintains independent trajectories for distinct events.
 
 ## Time, assertions, and telemetry
 
@@ -64,12 +62,11 @@ insufficient-information answer.
 Affective observations retain literal quotations, source IDs, event IDs,
 optional aspect/target, an assertion type (`EXPERIENCED`, `HYPOTHETICAL`,
 `INTENDED`, `UNCLEAR`), and a time class (`CURRENT`, `PAST_RECALL`,
-`FUTURE_ANTICIPATED`, `UNKNOWN`). Keyword safeguards override clearly
-conditional or prospective Writer assertions. These labels remain extraction
-outputs, not independently verified psychological states.
+`FUTURE_ANTICIPATED`, `UNKNOWN`). Keyword safeguards distinguish conditional
+and prospective statements from experienced emotions.
 
-Reader outputs include `retrieval_latency_ms` (query embedding plus
-deterministic evidence assembly) and `query_embedding_ms` separately from
-`generation_seconds`. For a speculative partial query, that work is a
-**preview**; final-query retrieval latency refers to the final evidence
-preparation and does not represent end-to-end speech-to-speech latency.
+Reader outputs report `retrieval_latency_ms` (query embedding and deterministic
+evidence assembly), `query_embedding_ms`, and `generation_seconds`.
+For partial speech, Anticipation prepares a preview; the final resolved query
+supplies the evidence context for Searching. Speech-to-speech timing can be
+measured separately by the voice frontend.

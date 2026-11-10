@@ -40,9 +40,9 @@ The system has three central components:
 
 ## Incremental voice queries and time-aware retrieval
 
-The [streaming query interface](docs/STREAMING_QUERY.md) supports Listening, optional speculative Anticipation, Speech Tail, and final Searching. A resolved query is always used for the final evidence context. The Qwen2.5-Omni HTTP adapter accepts short complete WAV chunks; native token-level ASR streaming depends on the underlying service.
+The [streaming query interface](docs/STREAMING_QUERY.md) coordinates Listening, Anticipation, Speech Tail, and final Searching. It prepares evidence from partial speech and finalizes retrieval against the resolved query. The Qwen2.5-Omni HTTP adapter processes short complete WAV chunks; native token-level streaming uses a compatible ASR backend.
 
-QA input may specify an ISO `cutoff_record_date`, allowing queries about earlier conversational snapshots. Reader outputs separate `retrieval_latency_ms` and `query_embedding_ms` from answer `generation_seconds`. For conservative cross-session event linking, the Writer uses source-attested event keys and a per-user stable ID; consistent key assignment across sessions remains an extraction quality requirement.
+QA input supports an ISO `cutoff_record_date` for time-bounded historical evidence. Reader outputs report `retrieval_latency_ms` and `query_embedding_ms` separately from `generation_seconds`. Source-attested, user-scoped event keys provide stable identifiers for exact-match trajectory retrieval across sessions.
 
 ## Pipeline Scheduling
 

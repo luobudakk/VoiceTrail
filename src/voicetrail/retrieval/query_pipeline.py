@@ -1,9 +1,9 @@
-"""VoxaTrail V7 research-ready query pipeline.
+"""VoiceTrail source-grounded, query-adaptive evidence retrieval.
 
-Full legal bank → source-only Schema/Entity router → E5 retrieval/Neighbor
-→ single Trail bundle → frozen V6 dynamic budgets & rendering.
-No Writer, Reader, Gold, E5 encoder, external service or network I/O.
-All scores must come from the same caller-frozen E5 revision.
+Filter by user and record date, route with schema and entity cues, retrieve
+with E5 and adjacent dialogue turns, expand event-conditioned trajectories,
+and coordinate raw, factual, and affective evidence under dynamic budgets.
+The caller provides E5 relevance scores for the indexed historical memory.
 """
 from __future__ import annotations
 from collections import defaultdict
@@ -149,8 +149,8 @@ def assemble_query(question:str,*,user_id:str,cutoff_record_date:str,
                 "raw_turns":tuple(_hold(raw,"turn_id",b["raw_ids"],20)),"facts":tuple(keep)})
     content=render_evidence_context(selected)
     if emotion_enabled and not trail_enabled:
-        # The V6 renderer would leak Event/Date/Quote: replace the entire affect
-        # section with FE's emotion-only list. Raw/Fact dates are common controls.
+        # Preserve the emotion-label baseline by replacing the detailed affect
+        # section with its label-only representation. Raw/Fact dates stay unchanged.
         head=content.split("\nEMOTION OBSERVATIONS:\n",1)[0]
         content=head+"\nEMOTION OBSERVATIONS:\n"+flat_labels(selected.observations)
     if not emotion_enabled:

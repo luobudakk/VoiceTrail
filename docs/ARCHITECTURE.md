@@ -26,14 +26,12 @@ The adapters are independent, allowing model providers and inference devices to 
 - Facts retain their originating turns.
 - Seeker emotion observations require firsthand supporting language and a matching seeker role.
 - The Writer attaches exact quotes and classifies first-person assertion and time scope. Optional aspect and target must appear verbatim in their source turn.
-- Source-attested event keys yield stable per-user event IDs. Query-time trail expansion groups only observations with the same stored nonempty ID; unverified event labels remain session-local.
+- Source-attested event keys produce stable per-user event IDs. Query-time trail expansion groups observations by stored exact-match event IDs; session-local labels stay scoped to their originating session.
 - Dynamic budgets select dialogue, facts and affective observations and omit redundant facts tied to already-selected dialogue turns.
 
 ## Query-time and streaming preparation
 
 - The `Question` object optionally includes `cutoff_record_date` (`YYYY-MM-DD`); later sessions are excluded before E5 scoring.
 - `ReaderAdapter.prepare_evidence` isolates E5 query embedding and deterministic source-aware retrieval from `answer_prepared`, enabling reusable finalized evidence and separate retrieval latency.
-- `StreamingQuerySession` offers Listening (partial transcript/cues), Anticipation (speculative evidence), Speech Tail (final segment), and Searching (final utterance and answer). The audio adapter accepts complete short WAV chunks; native ASR streaming is provider-dependent.
-- Cross-session event continuity requires consistently extracted event keys supported by original utterances; unsupported matches are not merged by semantic similarity.
-
-All outputs are written into a caller-selected private directory, not committed to source control.
+- `StreamingQuerySession` coordinates Listening (partial transcript/cues), Anticipation (early evidence), Speech Tail (final segment), and Searching (resolved query and answer). The Qwen2.5-Omni adapter processes short complete WAV chunks; a streaming-capable ASR backend enables native token-level streaming.
+- Cross-session continuity uses consistently normalized, source-attested event keys. Semantic similarity ranks evidence while stored event identity determines trajectory membership.

@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased — methodology implementation refinement
+## Methodology implementation refinements
 
 - Add source-attested, per-user stable event keys with session-local fallback.
 - Extract and validate affective assertion/time scope, plus optional source-backed aspect and target.
@@ -11,4 +11,4 @@
 
 ## 1.0.0 — modular source release
 
-Reorganized ASR, Writer, Indexer, Retrieval, Reader, Scheduler and Storage into separate modules. Replaced machine-specific endpoints and paths with environment configuration. Added tests, documentation and security checks. Experimental results are not included.
+Organized ASR, Writer, Indexer, Retrieval, Reader, Scheduler and Storage into independent modules. Added environment-based configuration, tests, documentation and security checks.

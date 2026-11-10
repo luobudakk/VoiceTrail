@@ -24,4 +24,4 @@ Use `VOICETRAIL_READER_URL` for an HTTP Reader, or provide `VOICETRAIL_READER_MO
 
 `--asr-workers`, `--writer-workers`, `--index-workers`, `--reader-workers` and `--queue-capacity` independently control concurrency.
 
-All service endpoints, model weights, and credentials are external to this source release.
+Configure service endpoints, model locations and authentication through environment variables or an external secret store.

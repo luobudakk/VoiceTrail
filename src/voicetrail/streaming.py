@@ -1,9 +1,9 @@
-"""Four-stage incremental voice-query preparation for VoiceTrail.
+"""Four-stage incremental spoken-query preparation for VoiceTrail.
 
-Applications may supply partial ASR transcripts, or independently decoded WAV
-chunks via listen_audio/speech_tail_audio. Anticipation is speculative; final
-Searching always uses the resolved utterance and a time-eligible snapshot.
-The offline batch scheduler remains available and uses the same Reader path.
+Applications provide partial ASR transcripts or separately transcribed WAV
+chunks through listen_audio/speech_tail_audio. Anticipation prepares early
+candidates; Searching uses the resolved utterance and time-eligible history.
+The batch scheduler and streaming interface share the Reader pipeline.
 """
 from __future__ import annotations
 
@@ -42,15 +42,15 @@ class StreamingQuerySession:
     def listen_audio(self, wav_chunk: bytes, asr_adapter: Any) -> dict:
         """Recognize a complete short WAV chunk and append its partial words.
 
-        An application controls audio chunk boundaries; the ASR HTTP backend
-        does not claim native token-by-token streaming support.
+        The frontend sets audio chunk boundaries; the HTTP ASR service
+        processes each self-contained WAV chunk.
         """
         text = asr_adapter.transcribe_wav_bytes(wav_chunk)
         combined = (self.partial_transcript + " " + text).strip()
         return self.listen(combined)
 
     def cues(self) -> dict:
-        """Provisional, source-only cues, not confirmed event identity."""
+        """Extract provisional source-derived intent, domain, and entity cues."""
         return {
             "stage": self.stage,
             "domains": list(slots(self.partial_transcript)),
@@ -91,7 +91,7 @@ class StreamingQuerySession:
         return self.speech_tail(asr_adapter.transcribe_wav_bytes(wav_chunk))
 
     def search(self) -> PreparedEvidence:
-        """Finalize trajectory retrieval; never trust stale partial candidates."""
+        """Finalize trajectory retrieval using the complete resolved query."""
         if self.final_transcript is None:
             raise RuntimeError("SPEECH_TAIL_REQUIRED")
         if self.final_evidence is None:

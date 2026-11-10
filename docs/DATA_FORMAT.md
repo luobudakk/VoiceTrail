@@ -1,6 +1,6 @@
 # Unified input format
 
-Datasets are kept **outside this repository**.
+Provide dataset paths at runtime using the following directory structure.
 
 ```text
 dataset/
@@ -27,4 +27,4 @@ The optional `cutoff_record_date` (alias: `as_of_record_date`) specifies the lat
 
 Writer output stores emotional observations with `source_turn_id`, `emotion_quote`, `emotion_assertion`, `time_class`, and optional `event_id`, `event_key`, `event_anchor`, `aspect`, and `target`. Trajectory linkage depends on exact stored `event_id` equality, not similarity-based identity inference.
 
-The loader validates unique IDs, checks audio existence, and prevents audio paths from escaping the dataset root. No split field is required. Reference answers are scoring-only assets and are not read by the memory pipeline.
+The loader validates unique IDs, checks audio existence, and resolves audio paths within the dataset root. Reference answers are consumed by the evaluation stage, separately from memory construction and QA inference.

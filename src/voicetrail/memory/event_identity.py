@@ -1,8 +1,7 @@
-"""Conservative, source-attested event identity for longitudinal emotion records.
+"""Source-attested event identities for longitudinal affective memory.
 
-Only an explicit stable event_key with an exact source anchor can become a
-cross-session identifier. Neither embedding similarity nor a generic event
-label is used to merge different experiences.
+A normalized, user-scoped event key with an exact source anchor establishes
+cross-session identity. Distinct keys retain separate event memberships.
 """
 from __future__ import annotations
 
@@ -36,8 +35,8 @@ def stable_event_id(user_id: str, event_key: object, event_anchor: object,
 
     The anchor must be a literal phrase from a seeker utterance in the current
     source turn; at least three distinctive key tokens must appear in it.
-    Different keys NEVER become equivalent by semantic similarity. Writers must
-    reuse the same canonical key for the same continuing event.
+    The same continuing event reuses a canonical key across sessions; event
+    membership is determined by this key rather than embedding similarity.
     """
     if not isinstance(event_key, str) or not isinstance(event_anchor, str):
         return None

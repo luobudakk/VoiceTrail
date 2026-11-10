@@ -1,5 +1,7 @@
-"""Single query-time Trail switch; source-only event-aware retrieval and rendering.
-No Writer re-build, no psychological prediction, no automatic causal edges.
+"""VoiceTrail event-conditioned trail selection and evidence rendering.
+
+Choose the event-linked trajectory or the controlled emotion-label baseline
+using the supplied source-grounded memory observations.
 """
 from __future__ import annotations
 from dataclasses import dataclass

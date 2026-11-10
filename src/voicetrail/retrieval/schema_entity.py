@@ -1,6 +1,7 @@
-"""Source-only deterministic Schema/Entity ranking for VoxaTrail V7.
-VoiceMem base-7 life domains adapted to existing E5; NO LLM call, no Gold.
-Does not claim to reproduce VoiceMem's emergent hierarchical clustering.
+"""VoiceTrail deterministic schema- and entity-aware evidence ranking.
+
+Source-derived life-domain and entity cues adjust E5 relevance scores with
+a lightweight, rule-based routing policy.
 """
 from __future__ import annotations
 from dataclasses import dataclass

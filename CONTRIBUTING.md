@@ -1,3 +1,3 @@
 # Contributing
 
-Preserve source and speaker attribution, user isolation and immutable stage receipts. Run python -m pytest -q and python scripts/security_scan.py before a PR. Never commit credentials, user data, audio, benchmark results, model weights or private endpoints.
+Contributions should preserve source and speaker attribution, user isolation, historical cutoffs, and immutable stage receipts. Before a pull request, run `python -m pytest -q` and `python scripts/security_scan.py`. Keep credentials, personal conversations, audio, and environment-specific service details in runtime configuration and private storage.

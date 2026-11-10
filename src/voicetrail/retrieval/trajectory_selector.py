@@ -1,8 +1,8 @@
-"""Gold-blind trajectory-first ET candidate retriever V2 (offline research candidate only).
+"""VoiceTrail event-conditioned emotion trajectory selection.
 
-The event/aspect observations are scored over the FULL eligible history before choosing
-15; date/stage and multi-session expansion happen before truncation. Exact Event IDs
-are never merged merely because topic similarity is high.
+Score eligible source-grounded observations over the full historical pool,
+then prioritize temporal anchors, event-linked sessions, and relevance within
+the 15-observation budget. Exact stored event IDs define event membership.
 """
 from __future__ import annotations
 from collections import defaultdict
@@ -56,7 +56,7 @@ def select(question: str, eligible: list[dict], scores: dict[str, float],
         add(o,"QUERY_E5_SEED")
 
     # 3. Expand selected Event groups from the full history, before K.
-    # Only link to existing IDs; never assert temporal persistence or identity.
+    # Expand across sessions using the event identities stored by the Writer.
     groups=defaultdict(list)
     for o in eligible:
         if o.get("event_id") and o.get("emotion_assertion")=="EXPERIENCED":
@@ -111,7 +111,7 @@ def select(question: str, eligible: list[dict], scores: dict[str, float],
             if add(o,"RELATED_ASPECT_DIFFERENT_EVENT_UNCONFIRMED"):
                 siblings+=1
 
-    # 5. Fill remaining budget with original E5 order; no adaptive tuning.
+    # 5. Fill remaining budget in original E5 relevance order.
     for o in ranked:
         if len(picked)>=K:break
         add(o,"GLOBAL_E5_BACKFILL")
