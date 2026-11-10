@@ -25,7 +25,15 @@ The adapters are independent, allowing model providers and inference devices to 
 - Raw turns have source IDs, speaker roles and conversation dates.
 - Facts retain their originating turns.
 - Seeker emotion observations require firsthand supporting language and a matching seeker role.
-- Event-conditioned trails connect supported observations without confusing third-party feelings with the seeker's emotions.
-- Dynamic budgets select evidence before the Reader receives context.
+- The Writer attaches exact quotes and classifies first-person assertion and time scope. Optional aspect and target must appear verbatim in their source turn.
+- Source-attested event keys yield stable per-user event IDs. Query-time trail expansion groups only observations with the same stored nonempty ID; unverified event labels remain session-local.
+- Dynamic budgets select dialogue, facts and affective observations and omit redundant facts tied to already-selected dialogue turns.
+
+## Query-time and streaming preparation
+
+- The `Question` object optionally includes `cutoff_record_date` (`YYYY-MM-DD`); later sessions are excluded before E5 scoring.
+- `ReaderAdapter.prepare_evidence` isolates E5 query embedding and deterministic source-aware retrieval from `answer_prepared`, enabling reusable finalized evidence and separate retrieval latency.
+- `StreamingQuerySession` offers Listening (partial transcript/cues), Anticipation (speculative evidence), Speech Tail (final segment), and Searching (final utterance and answer). The audio adapter accepts complete short WAV chunks; native ASR streaming is provider-dependent.
+- Cross-session event continuity requires consistently extracted event keys supported by original utterances; unsupported matches are not merged by semantic similarity.
 
 All outputs are written into a caller-selected private directory, not committed to source control.

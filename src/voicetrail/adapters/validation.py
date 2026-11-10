@@ -40,6 +40,8 @@ def verify_firsthand_emotion_quote(quote: str, source_text: str) -> bool:
         r"\bi(?:'m| am| was) (?:worried|anxious|afraid|scared|angry|tired|sick|upset|nervous|frustrated|exhausted|overwhelmed)\b",
         r"\bmy hands\b",
         r"\b(?:makes me feel|made me feel|it feels like)\b",
-        r"\bif i get\b",
+        r"\bi (?:might|would|could|may|will|shall) feel\b",
+        r"\bi (?:expect to|plan to|am going to|used to|remember) feel(?:ing)?\b",
+        r"\bif i\b.{0,70}\b(?:feel|felt|scared|anxious|nervous|angry|upset)\b",
     )
     return any(re.search(pattern, q) for pattern in patterns)

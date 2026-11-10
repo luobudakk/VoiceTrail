@@ -124,17 +124,19 @@ def short_quote(q: str, n: int=130) -> str:
 
 def render_compact_observations(observations: Sequence[Mapping[str,Any]]) -> str:
     out=[]
-    # Match the V6 DEV-pilot chronological flat renderer exactly.
     for o in sorted(observations, key=lambda x:(x["record_time"],x["session_id"],x["obs_id"])):
         if o.get("event_id") and o.get("link_status")!="LINKED_MODEL_CLAIM":
             raise ValueError("EVENT_NOT_MODEL_LINKED")
-        if o.get("time_class") not in ("CURRENT","PAST_RECALL"):
+        if o.get("time_class") not in ("CURRENT","PAST_RECALL","FUTURE_ANTICIPATED","UNKNOWN"):
             raise ValueError("UNKNOWN_TIME_CLASS")
         row=dict(id=o["obs_id"],t=o["record_time"],e=", ".join(o["emotion"]),
             turn=o["source_turn_id"],q=short_quote(o.get("emotion_quote") or ""),
             ev=o.get("event_id"),tc=o["time_class"],session=o["session_id"])
         if o.get("emotion_assertion")!="EXPERIENCED":
             row["assertion"]=o.get("emotion_assertion")
+        for field in ("aspect","target","event_anchor"):
+            if o.get(field):
+                row[field]=o[field]
         out.append(json.dumps(row,ensure_ascii=False,separators=(",",":")))
     return "\n".join(out)
 

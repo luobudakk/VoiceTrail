@@ -1,6 +1,7 @@
 '''Load one unified conversation/QA corpus without bundling private data.'''
 from __future__ import annotations
 import json
+from datetime import date
 from collections import defaultdict
 from pathlib import Path
 from .scheduler import AudioTurn, Session, Question
@@ -62,8 +63,16 @@ def load_dataset(
         if qid in qids:
             raise ValueError('Duplicate question ID')
         qids.add(qid)
+        cutoff = row.get('cutoff_record_date', row.get('as_of_record_date'))
+        if cutoff is not None:
+            cutoff = str(cutoff)
+            try:
+                if date.fromisoformat(cutoff).isoformat() != cutoff:
+                    raise ValueError('invalid date format')
+            except ValueError as exc:
+                raise ValueError('Invalid question cutoff_record_date: ' + cutoff) from exc
         questions.append(Question(
-            str(row['user_id']), qid, str(row['question'])))
+            str(row['user_id']), qid, str(row['question']), cutoff))
         if question_limit is not None and len(questions) >= question_limit:
             break
 

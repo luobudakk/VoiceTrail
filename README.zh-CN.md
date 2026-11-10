@@ -2,7 +2,7 @@
 
 **面向长期语音记忆的事件条件化情感轨迹系统**
 
-[English](README.md) · [架构设计](docs/ARCHITECTURE.md) · [配置说明](docs/CONFIGURATION.md) · [数据格式](docs/DATA_FORMAT.md)
+[English](README.md) · [架构设计](docs/ARCHITECTURE.md) · [流式查询](docs/STREAMING_QUERY.md) · [配置说明](docs/CONFIGURATION.md) · [数据格式](docs/DATA_FORMAT.md)
 
 VoiceTrail 面向跨会话语音交互中的长期记忆问题，将语音内容组织为具有时间、事件和主体归属的事实与情感记忆。在问答阶段，系统结合语义检索与事件条件化情感轨迹，从历史会话中选取相关证据，生成有来源支持的回答。
 
@@ -34,9 +34,15 @@ Reader：基于历史证据的跨会话问答
 
 系统围绕三个关键环节展开：
 
-- **事实与情感联合记忆**：将对话事实和情绪观测关联到原始话轮，保留说话人、会话及时间信息。
-- **事件条件化情感轨迹**：围绕事件组织跨会话情感变化，区分用户自身的感受与对他人状态的描述。
-- **证据协调与动态预算**：根据问题类型路由、筛选和组合事实、情感与原始会话证据，为 Reader 构建紧凑的历史上下文。
+- **来源约束的事实与情感记忆**：绑定原始话轮与引文，保留说话人、断言类别、时间范围及有来源支撑的事件键。
+- **事件条件化情感轨迹**：跨会话扩展仅采用非空且精确相等的事件 ID，在候选回填前恢复同一事件遗漏的会话阶段。
+- **自适应联合证据**：通过 E5/Schema 路由、来源去重和按问题分配预算，协调原始对话、事实与情感证据。
+
+## 语音增量查询与历史时点检索
+
+[流式查询接口](docs/STREAMING_QUERY.md) 提供 Listening、提前候选准备（Anticipation）、Speech Tail 和最终 Searching。完整问题确认后才使用最终检索结果。现有 Qwen2.5-Omni HTTP 转录支持分块 WAV 接入；底层服务是否支持原生流式 ASR 取决于部署方式。
+
+QA 可携带 ISO 日期格式的 `cutoff_record_date`，用于按历史时点隔离记忆。Reader 分开统计 `retrieval_latency_ms`、`query_embedding_ms` 和答案生成时间。跨会话事件标识要求 Writer 产生一致、可由原始话轮佐证的事件键；只有精确相等的事件 ID 才能形成同事件扩展。
 
 ## 流水线调度
 
@@ -91,7 +97,7 @@ voicetrail-run --dataset /path/to/dataset --output /path/to/output
 python -m pytest -q
 ```
 
-测试覆盖流水线调度、任务回执、来源与角色约束、数据解析及路径校验。
+测试覆盖流水线调度、任务回执、来源与角色约束、事件身份和情感类型、跨会话轨迹恢复、问题时间截止、增量查询及数据校验。
 
 ## License
 

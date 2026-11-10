@@ -1,8 +1,26 @@
-"""VoiceTrail V7 retrieval and evidence-grounded Reader adapter."""
-import os
+"""VoiceTrail source-grounded retrieval and Reader adapter.
+
+Query preparation is a first-class step, permitting anticipation on partial
+transcripts, a final Speech Tail update, and independent latency accounting.
+"""
+from dataclasses import dataclass
+from datetime import date
 import time
-from typing import Any
+from typing import Any, Sequence
 from ..scheduler import Question
+
+
+@dataclass(frozen=True)
+class PreparedEvidence:
+    question: str
+    user_id: str
+    cutoff_record_date: str
+    context: str
+    receipt: dict[str, Any]
+    retrieval_latency_ms: float
+    query_embedding_ms: float
+    eligible_session_count: int
+
 
 class ReaderAdapter:
     def _load_reader(self):
@@ -25,45 +43,99 @@ class ReaderAdapter:
             attn_implementation="sdpa", low_cpu_mem_usage=True,
             local_files_only=True).to(self.reader_device).eval()
 
-    def answer(self, question: Question, snapshot: tuple[dict, ...]) -> dict[str, Any]:
-        import numpy as np
-        from ..retrieval import assemble_query, PIPELINE_POLICY
+    def prepare_evidence(self, query_text: str, user_id: str,
+                         snapshot: Sequence[dict], *,
+                         cutoff_record_date: str | None = None) -> PreparedEvidence:
+        """Run deterministic memory retrieval before answer generation.
 
-        if not snapshot or any(s["user_id"] != question.user_id for s in snapshot):
+        The cutoff is per question. Exclude future indexed sessions before
+        scoring; never let a later session leak into an earlier snapshot.
+        """
+        import numpy as np
+        from ..retrieval import assemble_query
+        if not query_text.strip() or not user_id or not snapshot:
+            raise ValueError("query, user and snapshot required")
+        if any(s["user_id"] != user_id for s in snapshot):
             raise ValueError("cross-user memory contamination")
-        raw = [r for s in snapshot for r in s["raw"]]
-        facts = [f for s in snapshot for f in s["facts"]]
-        obs = [o for s in snapshot for o in s["emotions"]]
-        vectors = {key: val for s in snapshot for key, val in s["vectors"].items()}
-        v = self.e5.encode(["query: " + question.text],
-                           normalize_embeddings=True, show_progress_bar=False)[0]
+        cutoff = cutoff_record_date or max(s["date"] for s in snapshot)
+        for value in [cutoff, *(s["date"] for s in snapshot)]:
+            if not isinstance(value, str) or len(value) != 10:
+                raise ValueError("INVALID_RECORD_DATE")
+            try:
+                if date.fromisoformat(value).isoformat() != value:
+                    raise ValueError("INVALID_RECORD_DATE")
+            except ValueError as exc:
+                raise ValueError("INVALID_RECORD_DATE") from exc
+        legal = [s for s in snapshot if s["date"] <= cutoff]
+        if not legal:
+            return PreparedEvidence(query_text, user_id, cutoff, "", {},
+                                    0.0, 0.0, 0)
+        begun = time.perf_counter()
+        raw = [r for s in legal for r in s["raw"]]
+        facts = [f for s in legal for f in s["facts"]]
+        obs = [o for s in legal for o in s["emotions"]]
+        vectors = {key: val for s in legal for key, val in s["vectors"].items()}
+        embedding_start = time.perf_counter()
+        query_vec = self.e5.encode(["query: " + query_text],
+                                   normalize_embeddings=True, show_progress_bar=False)[0]
+        embedding_ms = (time.perf_counter() - embedding_start) * 1000
         def scores(items, key):
-            return {row[key]: float(np.dot(v, np.asarray(vectors[row[key]], dtype=np.float32)))
-                    for row in items}
+            return {row[key]: float(np.dot(query_vec, np.asarray(
+                vectors[row[key]], dtype=np.float32))) for row in items}
         result = assemble_query(
-            question.text, user_id=question.user_id,
-            cutoff_record_date=max(s["date"] for s in snapshot),
+            query_text, user_id=user_id, cutoff_record_date=cutoff,
             raw_pool=raw, fact_pool=facts, emotion_pool=obs,
             raw_scores=scores(raw, "turn_id"), fact_scores=scores(facts, "fact_id"),
             emotion_scores=scores(obs, "obs_id"),
             schema_enabled=True, trail_enabled=True, emotion_enabled=True,
             neighbor_enabled=True, fact_enabled=True, mode="dynamic",
         )
-        if result.receipt["pipeline"] != PIPELINE_POLICY:
-            raise ValueError("wrong VoiceTrail V7 version")
+        return PreparedEvidence(
+            query_text, user_id, cutoff, result.context, result.receipt,
+            round((time.perf_counter() - begun) * 1000, 3),
+            round(embedding_ms, 3), len(legal))
+
+    def answer_prepared(self, question: Question,
+                        prepared: PreparedEvidence) -> dict[str, Any]:
+        """Generate from final prepared evidence; do not redo retrieval."""
+        from ..retrieval import PIPELINE_POLICY
+        if question.user_id != prepared.user_id or question.text != prepared.question:
+            raise ValueError("PREPARED_QUERY_IDENTITY_MISMATCH")
+        if question.cutoff_record_date and question.cutoff_record_date != prepared.cutoff_record_date:
+            raise ValueError("PREPARED_QUERY_CUTOFF_MISMATCH")
+        if not prepared.eligible_session_count:
+            return {
+                "answer": "Insufficient information", "reader_model": self.reader_model_name,
+                "reader_mode": "no_eligible_history", "memory_token_count": 0,
+                "total_prompt_tokens": 0, "output_tokens": 0,
+                "generation_seconds": 0.0, "retrieval_latency_ms": 0.0,
+                "query_embedding_ms": 0.0, "selected_evidence": [0, 0, 0],
+                "trail_enabled": True, "evidence_source_ids": {},
+                "input_session_count": 0,
+            }
+        if prepared.receipt["pipeline"] != PIPELINE_POLICY:
+            raise ValueError("wrong VoiceTrail retrieval version")
         prompt = (
             "QUESTION:\n" + question.text
-            + "\nAS_OF_RECORD_DATE: " + max(s["date"] for s in snapshot)
-            + "\nHISTORICAL EVIDENCE:\n" + result.context
+            + "\nAS_OF_RECORD_DATE: " + prepared.cutoff_record_date
+            + "\nHISTORICAL EVIDENCE:\n" + prepared.context
         )
         system = (
             "Answer only using historical evidence and respect source roles, dates "
             "and person identity. Do not ascribe another person's feelings to seeker. "
             "Do not invent unobserved emotions, causal links or future states. "
+            "Distinguish experienced emotions from hypothetical or intended feelings. "
             "Give a short direct answer; say Insufficient information when unsupported."
         )
+        metadata = {
+            "retrieval_latency_ms": prepared.retrieval_latency_ms,
+            "query_embedding_ms": prepared.query_embedding_ms,
+            "selected_evidence": prepared.receipt["budget_receipt"]["selected_count"],
+            "trail_enabled": prepared.receipt["trail"]["enabled"],
+            "evidence_source_ids": prepared.receipt["budget_receipt"],
+            "input_session_count": prepared.eligible_session_count,
+        }
         if self.reader_url:
-            # HTTP Reader can reuse an existing model service.
             from transformers import AutoTokenizer
             if self.reader_tokenizer is None and self.reader_model_path:
                 self.reader_tokenizer = AutoTokenizer.from_pretrained(
@@ -91,16 +163,13 @@ class ReaderAdapter:
                 "reader_model": str(data.get("model", "Qwen3-8B")),
                 "reader_mode": "http_model",
                 "memory_token_count": (len(self.reader_tokenizer.encode(
-                    result.context, add_special_tokens=False))
+                    prepared.context, add_special_tokens=False))
                     if self.reader_tokenizer is not None else None),
                 "total_prompt_tokens": int(data.get("usage", {}).get("prompt_tokens", 0)),
                 "output_tokens": int(data.get("usage", {}).get("completion_tokens", 0)),
                 "generation_seconds": round(time.monotonic() - begun, 4),
-                "selected_evidence": result.receipt["budget_receipt"]["selected_count"],
-                "trail_enabled": result.receipt["trail"]["enabled"],
-                "evidence_source_ids": result.receipt["budget_receipt"],
-                "input_session_count": len(snapshot),
                 "model_server_batch_size": data.get("_runtime", {}).get("batch_size"),
+                **metadata,
             }
         import torch
         self._load_reader()
@@ -126,12 +195,15 @@ class ReaderAdapter:
         return {
             "answer": answer, "reader_model": self.reader_model_name,
             "memory_token_count": len(self.reader_tokenizer.encode(
-                result.context, add_special_tokens=False)),
+                prepared.context, add_special_tokens=False)),
             "total_prompt_tokens": int(count),
             "output_tokens": int(output.shape[-1] - count),
             "generation_seconds": round(time.monotonic() - begun, 4),
-            "selected_evidence": result.receipt["budget_receipt"]["selected_count"],
-            "trail_enabled": result.receipt["trail"]["enabled"],
-            "evidence_source_ids": result.receipt["budget_receipt"],
-            "input_session_count": len(snapshot),
+            **metadata,
         }
+
+    def answer(self, question: Question, snapshot: tuple[dict, ...]) -> dict[str, Any]:
+        prepared = self.prepare_evidence(
+            question.text, question.user_id, snapshot,
+            cutoff_record_date=question.cutoff_record_date)
+        return self.answer_prepared(question, prepared)

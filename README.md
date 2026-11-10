@@ -2,7 +2,7 @@
 
 **Event-Conditioned Emotion Trajectories for Long-Term Voice Memory**
 
-[简体中文](README.zh-CN.md) · [Architecture](docs/ARCHITECTURE.md) · [Configuration](docs/CONFIGURATION.md) · [Data Format](docs/DATA_FORMAT.md)
+[简体中文](README.zh-CN.md) · [Architecture](docs/ARCHITECTURE.md) · [Streaming Query](docs/STREAMING_QUERY.md) · [Configuration](docs/CONFIGURATION.md) · [Data Format](docs/DATA_FORMAT.md)
 
 VoiceTrail is a modular system for long-term memory in voice conversations. It represents conversational facts and affective observations with temporal, event, and speaker attribution. At question-answering time, VoiceTrail combines semantic retrieval with event-conditioned emotion trajectories to select relevant historical evidence and generate grounded answers.
 
@@ -34,9 +34,15 @@ Reader: Evidence-Grounded Longitudinal QA
 
 The system has three central components:
 
-- **Joint factual and affective memory:** observations are linked to original turns with speaker, session, and temporal metadata.
-- **Event-conditioned emotion trajectories:** cross-session affective changes are organized around events while preserving person attribution.
-- **Evidence coordination and dynamic budgeting:** fact, affective, and raw dialogue evidence are routed and selected according to the question.
+- **Source-grounded factual and affective memory:** original turns and emotion quotes retain speaker, session, assertion, time scope and optional source-attested event keys.
+- **Event-conditioned emotion trajectories:** only exact, nonempty event identifiers connect observations across sessions; missing-session stages are recovered before relevance backfilling.
+- **Query-adaptive joint evidence:** E5/schema routing and source-aware fact deduplication coordinate raw dialogue, facts and affective observations under question-dependent budgets.
+
+## Incremental voice queries and time-aware retrieval
+
+The [streaming query interface](docs/STREAMING_QUERY.md) supports Listening, optional speculative Anticipation, Speech Tail, and final Searching. A resolved query is always used for the final evidence context. The Qwen2.5-Omni HTTP adapter accepts short complete WAV chunks; native token-level ASR streaming depends on the underlying service.
+
+QA input may specify an ISO `cutoff_record_date`, allowing queries about earlier conversational snapshots. Reader outputs separate `retrieval_latency_ms` and `query_embedding_ms` from answer `generation_seconds`. For conservative cross-session event linking, the Writer uses source-attested event keys and a per-user stable ID; consistent key assignment across sessions remains an extraction quality requirement.
 
 ## Pipeline Scheduling
 
@@ -91,7 +97,7 @@ Use `--asr-workers`, `--writer-workers`, `--index-workers`, `--reader-workers`, 
 python -m pytest -q
 ```
 
-The test suite covers scheduling, job receipts, source and speaker attribution, dataset loading, and input path validation.
+The tests cover scheduling, job receipts, source/speaker attribution, stable and unsupported event keys, affective time/assertion classification, trajectory expansion, history cutoffs, streaming query preparation and input validation.
 
 ## License
 

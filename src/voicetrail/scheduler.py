@@ -42,6 +42,7 @@ class Question:
     user_id: str
     question_id: str
     text: str
+    cutoff_record_date: str | None = None
 
 
 @dataclass(frozen=True)
