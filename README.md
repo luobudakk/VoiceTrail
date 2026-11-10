@@ -75,7 +75,7 @@ Copy `.env.example` to `.env` and configure the ASR, Writer, Reader, and E5 mode
 
 ## Usage
 
-VoiceTrail accepts a unified speech-session and QA format, including **Voxemobench**. See [Data Format](docs/DATA_FORMAT.md) for the input schema.
+VoiceTrail reads the published **Voxemobench** dataset directly: 720 questions in `data/questions/questions.jsonl`, per-user conversation histories in `data/text/sessions/`, and matching WAV audio indexed by `data/audio/metadata.jsonl`. It also accepts the generic speech-session JSONL format. See [Data Format](docs/DATA_FORMAT.md) for both layouts.
 
 Validate a dataset:
 

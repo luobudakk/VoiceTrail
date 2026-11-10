@@ -75,7 +75,7 @@ pip install -e ".[live,test]"
 
 ## 使用
 
-VoiceTrail 使用统一的语音会话与 QA 数据格式，适配 **Voxemobench**。输入结构详见 [数据格式](docs/DATA_FORMAT.md)。
+VoiceTrail 可直接读取公开的 **Voxemobench** 统一数据集：720 道题位于 `data/questions/questions.jsonl`，按用户划分的会话文件位于 `data/text/sessions/`，音频通过 `data/audio/metadata.jsonl` 与原始话轮对应。同时支持通用语音会话 JSONL 格式。详见 [数据格式](docs/DATA_FORMAT.md)。
 
 检查数据结构：
 
